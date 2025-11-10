@@ -1,3 +1,4 @@
+"use client"
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,12 +9,33 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Github } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
+import { Loader } from "lucide-react";
+import { useTransition } from "react";
+import { toast } from "sonner";
+import { FcGoogle } from "react-icons/fc";
 
 export default function LoginPage() {
+  const [googlePending, startGoogleTransition] = useTransition();
+  async function signInWithGoogle() {
+    startGoogleTransition(async () => {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Signing with Google");
+          },
+          onError: (e) => {
+            toast.error("Internal Server Error!");
+          },
+        },
+      });
+    });
+  }
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle className="text-xl">Welcome back!</CardTitle>
         <CardDescription>
           Login with your Github or Email Account
@@ -21,9 +43,23 @@ export default function LoginPage() {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
-        <Button className="w-full" variant={"outline"}>
-          <Github />
-          Sign in with Github
+        <Button
+          disabled={googlePending}
+          onClick={signInWithGoogle}
+          className="w-full"
+          variant={"outline"}
+        >
+          {googlePending ? (
+            <>
+              <Loader className="size-4 animate-spin" />
+              <span>Loading...</span>
+            </>
+          ) : (
+            <>
+              <FcGoogle />
+              Sign in with Google
+            </>
+          )}
         </Button>
 
         <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
