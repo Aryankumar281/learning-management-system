@@ -5,7 +5,7 @@ import LOGO from "@/public/images.png";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { authClient } from "@/lib/auth-client";
 import { buttonVariants } from "@/components/ui/button";
-import {UserDropDown} from "./UserDropDown";
+import { UserDropDown } from "./UserDropDown";
 
 const navigationItems = [
   {
@@ -50,7 +50,18 @@ export function Navbar() {
             <ThemeToggle />
 
             {isPending ? null : session ? (
-              <UserDropDown name={session.user.name} email={session.user.email} image={session.user.image || "" }/>
+              <UserDropDown
+                name={
+                  session?.user.name && session.user.name.length > 0
+                    ? session.user.name
+                    : session?.user.email.split("@")[0]
+                }
+                email={session.user.email}
+                image={
+                  session?.user.image ??
+                  `https://avtar.vercel.sh/${session?.user.email}`
+                }
+              />
             ) : (
               <>
                 <Link
