@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowLeft, Plus, SparkleIcon } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, SparkleIcon } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,8 +37,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/rich-text-editor/Editor";
+import { Uploader } from "@/components/file-uploader/Uploader";
+import { useTransition } from "react";
+import { tryCatch } from "@/hooks/try-catch";
+import { CreateCourse } from "./actions";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function CourseCreationPage() {
+  const [isPending, startTransiton] = useTransition();
+  const router = useRouter();
   const form = useForm({
     resolver: zodResolver(courseSchema),
     defaultValues: {
@@ -56,6 +64,22 @@ export default function CourseCreationPage() {
   });
 
   function onSubmit(values: CourseSchemaType) {
+    startTransiton(async () => {
+      const { data: result, error } = await tryCatch(CreateCourse(values));
+
+      if (error) {
+        toast.error("An unexpected error occurred.Please try again!");
+        return;
+      }
+
+      if (result.status === "success") {
+        toast.success(result.message);
+        form.reset();
+        router.push("/admin/courses");
+      } else if (result.status === "error") {
+        toast.error(result.message);
+      }
+    });
     console.log(values);
   }
   return (
@@ -152,14 +176,7 @@ export default function CourseCreationPage() {
                   <FormItem className="w-full">
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      {/* <Textarea
-                        className="min-h-[120px]"
-                        placeholder="Description"
-                        {...field}
-                      /> */}
-
-                      <RichTextEditor field={field}/>
-                      
+                      <RichTextEditor field={field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -173,7 +190,7 @@ export default function CourseCreationPage() {
                   <FormItem className="w-full">
                     <FormLabel>Thumbnail image</FormLabel>
                     <FormControl>
-                      <Input placeholder="Thumbnail url" {...field} />
+                      <Uploader onChange={field.onChange} value={field.value} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -298,9 +315,22 @@ export default function CourseCreationPage() {
                 )}
               />
 
-              <Button className="w-full">
-                <Plus className="size-4 mr-1" />
-                Create Course
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="w-full"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="animate-spin mr-1" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="size-4 mr-1" />
+                    Create Course
+                  </>
+                )}
               </Button>
             </form>
           </Form>

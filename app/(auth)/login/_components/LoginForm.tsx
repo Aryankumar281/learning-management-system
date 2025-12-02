@@ -15,7 +15,6 @@ import { Loader, Loader2, Send } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { FcGoogle } from "react-icons/fc";
-import { auth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
 export function LoginForm() {
@@ -32,7 +31,7 @@ export function LoginForm() {
           onSuccess: () => {
             toast.success("Signing with Google");
           },
-          onError: (e) => {
+          onError: () => {
             toast.error("Internal Server Error!");
           },
         },
