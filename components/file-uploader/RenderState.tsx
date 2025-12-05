@@ -57,6 +57,7 @@ export function RenderUploadedState({
         src={previewUrl}
         alt="Uploaded File"
         fill
+        unoptimized
         className="object-contain p-2"
       />
       <Button

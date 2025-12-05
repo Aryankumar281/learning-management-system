@@ -11,6 +11,7 @@ import {
 } from "./RenderState";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
+import { useConstructUrl } from "@/hooks/use-construct";
 interface UploaderState {
   id: string | null;
   file: File | null;
@@ -26,7 +27,8 @@ interface iAppProps {
   value?: string;
   onChange?: (value: string) => void;
 }
-export function Uploader({onChange,value}:iAppProps) {
+export function Uploader({ onChange, value }: iAppProps) {
+  const fileUrl = useConstructUrl(value || "");
   const [fileState, setFileState] = useState<UploaderState>({
     error: false,
     file: null,
@@ -35,7 +37,8 @@ export function Uploader({onChange,value}:iAppProps) {
     isDeleting: false,
     fileType: "image",
     uploading: false,
-    key:value,
+    key: value,
+    objectUrl: value ? fileUrl : undefined,
   });
 
   async function uploadFile(file: File) {
@@ -117,7 +120,7 @@ export function Uploader({onChange,value}:iAppProps) {
     }
   }
 
-  const onDrop = useCallback(
+  const onDrop = 
     (acceptedFiles: File[]) => {
       // Do something with the files
       if (acceptedFiles.length > 0) {
@@ -139,9 +142,9 @@ export function Uploader({onChange,value}:iAppProps) {
         });
         uploadFile(file);
       }
-    },
-    [fileState.objectUrl]
-  );
+    }
+    
+  
 
   async function handleRemoveFile() {
     if (fileState.isDeleting || !fileState.objectUrl) return;
