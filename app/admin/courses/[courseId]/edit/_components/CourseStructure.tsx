@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DndContext,
+  DragEndEvent,
   DraggableSyntheticListeners,
   KeyboardSensor,
   PointerSensor,
@@ -16,7 +17,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { CSS } from "@dnd-kit/utilities";
 import { AdminCourseSingularType } from "@/app/data/admin/admin-get-course";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { toast } from "sonner";
+import { reoderChapters, reorderLessons } from "../actions";
 
 interface iAppProps {
   data: AdminCourseSingularType;
@@ -45,7 +48,7 @@ interface SortableItemProps {
   className?: string;
   data?: {
     type: "chapter" | "lesson";
-    chapter?: string; //only relevent for lesson
+    chapterId?: string; //only relevent for lesson
   };
 }
 export function CourseStructure({ data }: iAppProps) {
@@ -62,6 +65,24 @@ export function CourseStructure({ data }: iAppProps) {
       })),
     })) || [];
   const [items, setItems] = useState(initialitems);
+
+  useEffect(()=>{
+    setItems((prevItems)=>{
+      const updatedItems = data.chapter.map((chapter)=>({
+         id: chapter.id,
+      title: chapter.title,
+      order: chapter.position,
+      isOpen: prevItems.find((item)=> item.id ===chapter.id)?.isOpen ?? true, //default chapers open
+      lessons: chapter.lesson.map((lesson) => ({
+        title: lesson.title,
+        id: lesson.id,
+        order: lesson.position,
+      })),
+      })) || [];
+
+      return updatedItems;
+    })
+  },[data])
 
   function SortableItem({ children, id, className, data }: SortableItemProps) {
     const {
@@ -89,16 +110,150 @@ export function CourseStructure({ data }: iAppProps) {
       </div>
     );
   }
-  function handleDragEnd(event) {
+  function handleDragEnd(event:DragEndEvent) {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
-      setItems((items) => {
-        const oldIndex = items.indexOf(active.id);
-        const newIndex = items.indexOf(over.id);
+    if (!over || active.id === over.id) {
+      return;
+    }
 
-        return arrayMove(items, oldIndex, newIndex);
-      });
+    const activeId = active.id;
+    const overId = over.id;
+    const activeType = active.data.current?.type as "chapter" | "lesson";
+    const overType = over.data.current?.type as "chapter" | "lesson";
+    const courseId = data.id;
+
+    if (activeType === "chapter") {
+      let targetChaperId = null;
+
+      if (overType === "chapter") {
+        targetChaperId = overId;
+      } else if (overType === "lesson") {
+        targetChaperId = over.data.current?.chapterId ?? null;
+      }
+
+      if (!targetChaperId) {
+        toast.error("Could not determine the chapter for reordering");
+        return;
+      }
+
+      const oldIndex = items.findIndex((item) => item.id === activeId);
+      const newIndex = items.findIndex((item) => item.id === targetChaperId);
+
+      if (oldIndex === -1 || newIndex === -1) {
+        toast.error("Could not find chapter old/new index for reordering");
+        return;
+      }
+
+      const reorderedLocalChapters = arrayMove(items, oldIndex, newIndex);
+
+      const updatedChapterForState = reorderedLocalChapters.map(
+        (chapter, index) => ({
+          ...chapter,
+          order: index + 1,
+        })
+      );
+      const previousItems = [...items];
+
+      setItems(updatedChapterForState);
+
+
+      if (courseId) {
+        const chapterToUpdate = updatedChapterForState.map((chapter) => ({
+          id: chapter.id,
+          position: chapter.order,
+        }));
+
+        const reorderChapterPromise = () =>
+          reoderChapters(courseId, chapterToUpdate);
+
+        toast.promise(reorderChapterPromise(), {
+          loading: "Reordering Chapters....",
+          success: (result) => {
+            if (result.status === "success") return result.message;
+            throw new Error(result.message);
+          },
+          error: () => {
+            setItems(previousItems);
+            return "Failed to reorder Chapters";
+          }
+        });
+      }
+      return;
+    }
+
+    if (activeType === "lesson" && overType === "lesson") {
+      const chapterId = active.data.current?.chapterId;
+      const overChapterId = over.data.current?.chapterId;
+
+      if (!chapterId || chapterId !== overChapterId) {
+        toast.error(
+          "lesson move between differnet chapters or invalid chapter Id id not allowed"
+        );
+        return;
+      }
+
+      const chapterIndex = items.findIndex(
+        (chapter) => chapter.id === chapterId
+      );
+      if (chapterIndex === -1) {
+        toast.error("could not find chapter for lesson");
+        return;
+      }
+      const chapterToUpdate = items[chapterIndex];
+
+      const oldLessonIndex = chapterToUpdate.lessons.findIndex(
+        (lesson) => lesson.id === activeId
+      );
+
+      const newLessonIndex = chapterToUpdate.lessons.findIndex(
+        (lesson) => lesson.id === overId
+      );
+
+      if (oldLessonIndex === -1 || newLessonIndex === -1) {
+        toast.error("could not find lesson for reordering..");
+        return;
+      }
+      const reorderedLessons = arrayMove(
+        chapterToUpdate.lessons,
+        oldLessonIndex,
+        newLessonIndex
+      );
+      const updatedLessonForState = reorderedLessons.map((lesson, index) => ({
+        ...lesson,
+        order: index + 1,
+      }));
+
+      const newItems = [...items];
+      newItems[chapterIndex] = {
+        ...chapterToUpdate,
+        lessons: updatedLessonForState,
+      };
+
+      const previousItems = [...items];
+      setItems(newItems);
+      if (courseId) {
+        const lessonsToUpdate = updatedLessonForState.map((lesson) => ({
+          id: lesson.id,
+          position: lesson.order,
+        }));
+
+        const reorderLessonPromise = () =>
+          reorderLessons(chapterId, lessonsToUpdate, courseId);
+
+        toast.promise(reorderLessonPromise(), {
+          loading: "Reordering lessons....",
+          success: (result) => {
+            if (result.status === "success") return result.message;
+            throw new Error(result.message);
+          },
+          error: () => {
+            setItems(previousItems);
+            return "Failed to reorder lessons";
+          }
+        });
+      }
+      return;
     }
   }
   const sensors = useSensors(
@@ -127,7 +282,7 @@ export function CourseStructure({ data }: iAppProps) {
         <CardHeader className="flex flex-row items-center justify-between border-b border-border">
           <CardTitle>Chapters</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-8">
           <SortableContext strategy={verticalListSortingStrategy} items={items}>
             {items.map((item) => (
               <SortableItem
@@ -178,7 +333,7 @@ export function CourseStructure({ data }: iAppProps) {
                               <SortableItem
                                 key={lesson.id}
                                 id={lesson.id}
-                                data={{ type: "lesson", chapter: item.id }}
+                                data={{ type: "lesson", chapterId: item.id }}
                               >
                                 {(lesssonListeners) => (
                                   <div className="flex items-center justify-between p-2 hover:bg-accent rounded-sm">
@@ -206,7 +361,9 @@ export function CourseStructure({ data }: iAppProps) {
                             ))}
                           </SortableContext>
                           <div>
-                            <Button className="w-full" variant="outline">Create New lesson</Button>
+                            <Button className="w-full" variant="outline">
+                              Create New lesson
+                            </Button>
                           </div>
                         </div>
                       </CollapsibleContent>
