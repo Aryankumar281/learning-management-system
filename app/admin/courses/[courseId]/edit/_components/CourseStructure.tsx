@@ -38,6 +38,10 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { toast } from "sonner";
 import { reoderChapters, reorderLessons } from "../actions";
+import { NewChapterModal } from "./NewChapterModal";
+import { NewLessonModal } from "./NewLessonModal";
+import { DeleteLesson } from "./DeleteLesson";
+import { DeleteChapter } from "./DeletChapter";
 
 interface iAppProps {
   data: AdminCourseSingularType;
@@ -66,23 +70,25 @@ export function CourseStructure({ data }: iAppProps) {
     })) || [];
   const [items, setItems] = useState(initialitems);
 
-  useEffect(()=>{
-    setItems((prevItems)=>{
-      const updatedItems = data.chapter.map((chapter)=>({
-         id: chapter.id,
-      title: chapter.title,
-      order: chapter.position,
-      isOpen: prevItems.find((item)=> item.id ===chapter.id)?.isOpen ?? true, //default chapers open
-      lessons: chapter.lesson.map((lesson) => ({
-        title: lesson.title,
-        id: lesson.id,
-        order: lesson.position,
-      })),
-      })) || [];
+  useEffect(() => {
+    setItems((prevItems) => {
+      const updatedItems =
+        data.chapter.map((chapter) => ({
+          id: chapter.id,
+          title: chapter.title,
+          order: chapter.position,
+          isOpen:
+            prevItems.find((item) => item.id === chapter.id)?.isOpen ?? true, //default chapers open
+          lessons: chapter.lesson.map((lesson) => ({
+            title: lesson.title,
+            id: lesson.id,
+            order: lesson.position,
+          })),
+        })) || [];
 
       return updatedItems;
-    })
-  },[data])
+    });
+  }, [data]);
 
   function SortableItem({ children, id, className, data }: SortableItemProps) {
     const {
@@ -110,7 +116,7 @@ export function CourseStructure({ data }: iAppProps) {
       </div>
     );
   }
-  function handleDragEnd(event:DragEndEvent) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
     if (!over || active.id === over.id) {
@@ -157,7 +163,6 @@ export function CourseStructure({ data }: iAppProps) {
 
       setItems(updatedChapterForState);
 
-
       if (courseId) {
         const chapterToUpdate = updatedChapterForState.map((chapter) => ({
           id: chapter.id,
@@ -176,7 +181,7 @@ export function CourseStructure({ data }: iAppProps) {
           error: () => {
             setItems(previousItems);
             return "Failed to reorder Chapters";
-          }
+          },
         });
       }
       return;
@@ -250,7 +255,7 @@ export function CourseStructure({ data }: iAppProps) {
           error: () => {
             setItems(previousItems);
             return "Failed to reorder lessons";
-          }
+          },
         });
       }
       return;
@@ -281,6 +286,7 @@ export function CourseStructure({ data }: iAppProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between border-b border-border">
           <CardTitle>Chapters</CardTitle>
+          <NewChapterModal courseId={data.id} />
         </CardHeader>
         <CardContent className="space-y-8">
           <SortableContext strategy={verticalListSortingStrategy} items={items}>
@@ -318,9 +324,7 @@ export function CourseStructure({ data }: iAppProps) {
                             {item.title}
                           </p>
                         </div>
-                        <Button size="icon" variant="destructive">
-                          <Trash2 className="size-4" />
-                        </Button>
+                       <DeleteChapter chapterId={item.id} courseId={data.id}/> 
                       </div>
                       <CollapsibleContent>
                         <div className="p-1">
@@ -352,18 +356,21 @@ export function CourseStructure({ data }: iAppProps) {
                                         {lesson.title}
                                       </Link>
                                     </div>
-                                    <Button size="icon" variant="destructive">
-                                      <Trash2 className="size-4" />
-                                    </Button>
+                                    <DeleteLesson
+                                      chapterId={item.id}
+                                      courseId={data.id}
+                                      lessonId={lesson.id}
+                                    />
                                   </div>
                                 )}
                               </SortableItem>
                             ))}
                           </SortableContext>
                           <div>
-                            <Button className="w-full" variant="outline">
-                              Create New lesson
-                            </Button>
+                            <NewLessonModal
+                              chapterId={item.id}
+                              courseId={data.id}
+                            />
                           </div>
                         </div>
                       </CollapsibleContent>
