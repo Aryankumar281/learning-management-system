@@ -77,7 +77,7 @@ export function EditCourseForm({data}:iAppProps) {
         toast.error(result.message);
       }
     });
-    console.log(values);
+    
   }
   return (
     <Form {...form}>

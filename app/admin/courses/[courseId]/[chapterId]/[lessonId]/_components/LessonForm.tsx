@@ -70,7 +70,7 @@ export function LessonForm({ chapterId, data, courseId }: iAppProps) {
         toast.error(result.message);
       }
     });
-    console.log(values);
+    
   }
 
   return (
