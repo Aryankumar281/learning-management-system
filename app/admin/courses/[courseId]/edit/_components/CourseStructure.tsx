@@ -32,7 +32,6 @@ import {
   FileText,
   GripVertical,
   GripVerticalIcon,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -351,7 +350,7 @@ export function CourseStructure({ data }: iAppProps) {
                                       </Button>
                                       <FileText className="size-4" />
                                       <Link
-                                        href={`/admin/course/${data.id}/${item.id}/${lesson.id}`}
+                                        href={`/admin/courses/${data.id}/${item.id}/${lesson.id}`}
                                       >
                                         {lesson.title}
                                       </Link>

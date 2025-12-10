@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FileRejection, useDropzone } from "react-dropzone";
 import { Card, CardContent } from "../ui/card";
 import { cn } from "@/lib/utils";
@@ -26,8 +26,9 @@ interface UploaderState {
 interface iAppProps {
   value?: string;
   onChange?: (value: string) => void;
+  fileTypeAccepted: "image" | "video";
 }
-export function Uploader({ onChange, value }: iAppProps) {
+export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
   const fileUrl = useConstructUrl(value || "");
   const [fileState, setFileState] = useState<UploaderState>({
     error: false,
@@ -35,7 +36,7 @@ export function Uploader({ onChange, value }: iAppProps) {
     id: null,
     progress: 0,
     isDeleting: false,
-    fileType: "image",
+    fileType: fileTypeAccepted,
     uploading: false,
     key: value,
     objectUrl: value ? fileUrl : undefined,
@@ -57,7 +58,7 @@ export function Uploader({ onChange, value }: iAppProps) {
           fileName: file.name,
           contentType: file.type,
           size: file.size,
-          isImage: true,
+          isImage: fileTypeAccepted === "image" ? true : false,
         }),
       });
 
@@ -120,31 +121,28 @@ export function Uploader({ onChange, value }: iAppProps) {
     }
   }
 
-  const onDrop = 
-    (acceptedFiles: File[]) => {
-      // Do something with the files
-      if (acceptedFiles.length > 0) {
-        const file = acceptedFiles[0];
+  const onDrop = (acceptedFiles: File[]) => {
+    // Do something with the files
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
 
-        if (fileState.objectUrl && !fileState.objectUrl.startsWith("http")) {
-          URL.revokeObjectURL(fileState.objectUrl);
-        }
-
-        setFileState({
-          file: file,
-          uploading: false,
-          progress: 0,
-          objectUrl: URL.createObjectURL(file),
-          error: false,
-          fileType: "image",
-          id: uuidv4(),
-          isDeleting: false,
-        });
-        uploadFile(file);
+      if (fileState.objectUrl && !fileState.objectUrl.startsWith("http")) {
+        URL.revokeObjectURL(fileState.objectUrl);
       }
+
+      setFileState({
+        file: file,
+        uploading: false,
+        progress: 0,
+        objectUrl: URL.createObjectURL(file),
+        error: false,
+        fileType: fileTypeAccepted,
+        id: uuidv4(),
+        isDeleting: false,
+      });
+      uploadFile(file);
     }
-    
-  
+  };
 
   async function handleRemoveFile() {
     if (fileState.isDeleting || !fileState.objectUrl) return;
@@ -179,7 +177,7 @@ export function Uploader({ onChange, value }: iAppProps) {
         progress: 0,
         objectUrl: undefined,
         error: false,
-        fileType: "image",
+        fileType: fileTypeAccepted,
         id: null,
         isDeleting: false,
       }));
@@ -229,6 +227,7 @@ export function Uploader({ onChange, value }: iAppProps) {
           handleRemovalFile={handleRemoveFile}
           isDeleting={fileState.isDeleting}
           previewUrl={fileState.objectUrl}
+          fileType={fileTypeAccepted}
         />
       );
     }
@@ -245,12 +244,12 @@ export function Uploader({ onChange, value }: iAppProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      "image/*": [],
-    },
+    accept:
+      fileTypeAccepted === "video" ? { "video/*": [] } : { "image/*": [] },
     maxFiles: 1,
     multiple: false,
-    maxSize: 1024 * 1024 * 5, //5mb
+    maxSize:
+      fileTypeAccepted === "image" ? 1024 * 1024 * 5 : 1024 * 1024 * 5000, //5mb
     onDropRejected: rejectedFiles,
     disabled: fileState.uploading || !!fileState.objectUrl,
   });
@@ -271,3 +270,5 @@ export function Uploader({ onChange, value }: iAppProps) {
     </Card>
   );
 }
+
+//3:08
