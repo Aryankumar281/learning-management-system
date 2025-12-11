@@ -1,26 +1,19 @@
 "use server";
 
 import { requireAdmin } from "@/app/data/admin/require-admin";
-import arcjet, { detectBot, fixedWindow } from "@/lib/arcjet";
+import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { APiResponse } from "@/lib/types";
 import { courseSchema, CourseSchemaType } from "@/lib/zodSchemas";
 import { request } from "@arcjet/next";
 
-const aj = arcjet
-  .withRule(
-    detectBot({
-      mode: "LIVE",
-      allow: [],
-    })
-  )
-  .withRule(
-    fixedWindow({
-      mode: "LIVE",
-      window: "1m",
-      max: 5,
-    })
-  );
+const aj = arcjet.withRule(
+  fixedWindow({
+    mode: "LIVE",
+    window: "1m",
+    max: 5,
+  })
+);
 export async function CreateCourse(
   values: CourseSchemaType
 ): Promise<APiResponse> {
@@ -37,11 +30,11 @@ export async function CreateCourse(
           status: "error",
           message: "blocked due to rate limiting",
         };
-      }else{
+      } else {
         return {
-          status:"error",
-          message:"Your are a bot user"
-        }
+          status: "error",
+          message: "Your are a bot user",
+        };
       }
     }
     const validation = courseSchema.safeParse(values);
