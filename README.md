@@ -1,6 +1,3 @@
-remove fake delay from get-all-courses and admin-get-courses
-
-
 # Learning Management System (LMS)
 
 A modern, full-stack Learning Management System built with Next.js, featuring course management, user authentication, file uploads, and an intuitive admin interface.

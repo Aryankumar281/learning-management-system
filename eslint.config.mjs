@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     // Ignore generated Prisma client to avoid linting generated code
     "lib/generated/**",
   ]),
+  {ignores:[]}
 ]);
 
 export default eslintConfig;
